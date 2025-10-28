@@ -1,0 +1,13 @@
+version: '3.7'
+services:
+  gw-provider:
+    container_name: bts-radio-data-service
+    image: docker.tele2.kz/tech_team/bts-online/radio-data-service:master
+    restart: always
+    ports:
+      - "8581:8080"
+    volumes:
+      - ./log:/log
+    environment:
+      TZ: "Asia/Atyrau"
+    network_mode: bridge

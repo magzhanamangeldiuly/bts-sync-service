@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: bts-sync-service
+  datasource:
+    postgres:
+      jdbc-url: jdbc:postgresql://${RANSHARING_DB_URL}
+      username: ${RANSHARING_DB_USERNAME}
+      password: ${RANSHARING_DB_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+      pool-name: PostgresPool
+    oracle:
+      jdbc-url: jdbc:oracle:thin:@//${ALARMS_DB_URL}
+      username: ${ALARMS_DB_USERNAME}
+      password: ${ALARMS_DB_PASSWORD}
+      driver-class-name: oracle.jdbc.OracleDriver
+      pool-name: OraclePool
+    maria:
+      jdbc-url: jdbc:mariadb://${MARIA_DB_URL}
+      username: ${MARIA_DB_USERNAME}
+      password: ${MARIA_DB_PASSWORD}
+      driver-class-name: org.mariadb.jdbc.Driver
+      pool-name: MariaPool
+    atoll:
+      jdbc-url: jdbc:sqlserver://${ATOLL_DB_URL}
+      username: ${ATOLL_DB_USERNAME}
+      password: ${ATOLL_DB_PASSWORD}
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      pool-name: AtollPool
+    atoll-tr:
+      jdbc-url: jdbc:sqlserver://${ATOLL_TRANSPORT_DB_URL_ENCRYPT}
+      username: ${ATOLL_DB_USERNAME}
+      password: ${ATOLL_DB_PASSWORD}
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      pool-name: AtollPool
+    ciptracker:
+      jdbc-url: jdbc:mysql://${CIPTRACKER_DB_URL}
+      username: ${CIPTRACKER_DB_USERNAME}
+      password: ${CIPTRACKER_DB_PASSWORD}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      pool-name: CiptrackerPool
+
+sync:
+  sites:
+    fixed-delay: 3600000
+    max-rows-per-poll: 1000
+    enabled: true
+  cells:
+    fixed-delay: 3600000
+    max-rows-per-poll: 2000
+    enabled: true
+  site-works:
+    fixed-delay: 3600000
+    max-rows-per-poll: 1000
+    enabled: true
+  cell-interference:
+    fixed-delay: 3600000
+    max-rows-per-poll: 2000
+    enabled: true
+
+logging:
+  file:
+    name: ./log/app.log
+  level:
+    kz.tele2.bts.radio: DEBUG
+    org.springframework.integration: INFO
