@@ -13,7 +13,6 @@ import java.util.Map;
 public class SiteWorksUpsertHandler extends AbstractReplyProducingMessageHandler {
 
     @Override
-    @SuppressWarnings("unchecked")
     protected Object handleRequestMessage(Message<?> message) {
         List<Map<String, Object>> works = (List<Map<String, Object>>) message.getPayload();
         
@@ -27,6 +26,6 @@ public class SiteWorksUpsertHandler extends AbstractReplyProducingMessageHandler
     }
     
     private void upsertSiteWork(Map<String, Object> work) {
-        
+        log.info("SiteWork: {}", work.toString());
     }
 }

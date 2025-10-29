@@ -13,7 +13,6 @@ import java.util.Map;
 public class CellsUpsertHandler extends AbstractReplyProducingMessageHandler {
 
     @Override
-    @SuppressWarnings("unchecked")
     protected Object handleRequestMessage(Message<?> message) {
         List<Map<String, Object>> cells = (List<Map<String, Object>>) message.getPayload();
         
@@ -27,6 +26,6 @@ public class CellsUpsertHandler extends AbstractReplyProducingMessageHandler {
     }
     
     private void upsertCell(Map<String, Object> cell) {
-        
+        log.info("Cells: {}", cell.toString());
     }
 }

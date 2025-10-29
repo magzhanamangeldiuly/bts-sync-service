@@ -13,7 +13,6 @@ import java.util.Map;
 public class CellInterferenceUpsertHandler extends AbstractReplyProducingMessageHandler {
 
     @Override
-    @SuppressWarnings("unchecked")
     protected Object handleRequestMessage(Message<?> message) {
         List<Map<String, Object>> interferences = (List<Map<String, Object>>) message.getPayload();
         
@@ -27,6 +26,6 @@ public class CellInterferenceUpsertHandler extends AbstractReplyProducingMessage
     }
     
     private void upsertCellInterference(Map<String, Object> interference) {
-        
+        log.info("Interference: {}", interference.toString());
     }
 }
