@@ -20,13 +20,13 @@ public class CellInterferenceUpsertHandler extends AbstractReplyProducingMessage
 
     private static final String UPSERT_SQL = """
             MERGE INTO ob_interferences_v2 t
-            USING (SELECT ? AS cell, ? AS value FROM dual) s
+            USING (SELECT ? AS cell, ? AS value, ? AS insert_date FROM dual) s
             ON (t.cell = s.cell)
             WHEN MATCHED THEN
-                UPDATE SET t.value = s.value, t.insert_date = CURRENT_TIMESTAMP
+                UPDATE SET t.value = s.value, t.insert_date = s.insert_date
             WHEN NOT MATCHED THEN
                 INSERT (cell, value, insert_date)
-                VALUES (s.cell, s.value, CURRENT_TIMESTAMP)
+                VALUES (s.cell, s.value, s.insert_date)
             """;
 
     public CellInterferenceUpsertHandler(JdbcTemplate oracleJdbcTemplate) {
@@ -37,6 +37,7 @@ public class CellInterferenceUpsertHandler extends AbstractReplyProducingMessage
     @SuppressWarnings("unchecked")
     protected Object handleRequestMessage(Message<?> message) {
         List<Map<String, Object>> interferences = (List<Map<String, Object>>) message.getPayload();
+        java.sql.Timestamp insertDate = (java.sql.Timestamp) message.getHeaders().get("insert_date");
         
         log.info("Обрабатываем {} интерференций", interferences.size());
         
@@ -46,6 +47,7 @@ public class CellInterferenceUpsertHandler extends AbstractReplyProducingMessage
                 Map<String, Object> interference = interferences.get(i);
                 ps.setObject(1, interference.get("cell"));
                 ps.setObject(2, interference.get("value"));
+                ps.setTimestamp(3, insertDate);
             }
 
             @Override

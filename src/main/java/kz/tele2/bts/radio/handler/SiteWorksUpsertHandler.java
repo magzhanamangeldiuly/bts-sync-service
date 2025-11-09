@@ -20,7 +20,7 @@ public class SiteWorksUpsertHandler extends AbstractReplyProducingMessageHandler
 
     private static final String UPSERT_SQL = """
             INSERT INTO ob_works_v2 (site, work_type, status, insert_date)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?)
             """;
 
     public SiteWorksUpsertHandler(JdbcTemplate oracleJdbcTemplate) {
@@ -31,6 +31,7 @@ public class SiteWorksUpsertHandler extends AbstractReplyProducingMessageHandler
     @SuppressWarnings("unchecked")
     protected Object handleRequestMessage(Message<?> message) {
         List<Map<String, Object>> works = (List<Map<String, Object>>) message.getPayload();
+        java.sql.Timestamp insertDate = (java.sql.Timestamp) message.getHeaders().get("insert_date");
         
         log.info("Обрабатываем {} работ на сайтах", works.size());
         
@@ -41,6 +42,7 @@ public class SiteWorksUpsertHandler extends AbstractReplyProducingMessageHandler
                 ps.setObject(1, work.get("site"));
                 ps.setObject(2, work.get("work_type"));
                 ps.setObject(3, work.get("status"));
+                ps.setTimestamp(4, insertDate);
             }
 
             @Override

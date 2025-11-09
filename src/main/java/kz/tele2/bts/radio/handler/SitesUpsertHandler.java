@@ -21,18 +21,18 @@ public class SitesUpsertHandler extends AbstractReplyProducingMessageHandler {
     private static final String UPSERT_SQL = """
             MERGE INTO ob_sites_v2 t
             USING (SELECT ? AS name, ? AS rnc, ? AS bsc, ? AS latitude, ? AS longitude, 
-                          ? AS operator, ? AS kato, ? AS is_test, ? AS address, ? AS source, ? AS type 
+                          ? AS operator, ? AS kato, ? AS is_test, ? AS address, ? AS source, ? AS type, ? AS insert_date 
                    FROM dual) s
             ON (t.name = s.name)
             WHEN MATCHED THEN
                 UPDATE SET t.rnc = s.rnc, t.bsc = s.bsc, t.latitude = s.latitude, 
                            t.longitude = s.longitude, t.operator = s.operator, t.kato = s.kato,
                            t.is_test = s.is_test, t.address = s.address, t.source = s.source, 
-                           t.type = s.type, t.insert_date = CURRENT_TIMESTAMP
+                           t.type = s.type, t.insert_date = s.insert_date
             WHEN NOT MATCHED THEN
                 INSERT (name, rnc, bsc, latitude, longitude, operator, kato, is_test, address, source, type, insert_date)
                 VALUES (s.name, s.rnc, s.bsc, s.latitude, s.longitude, s.operator, s.kato, s.is_test, 
-                        s.address, s.source, s.type, CURRENT_TIMESTAMP)
+                        s.address, s.source, s.type, s.insert_date)
             """;
 
     public SitesUpsertHandler(JdbcTemplate oracleJdbcTemplate) {
@@ -43,6 +43,7 @@ public class SitesUpsertHandler extends AbstractReplyProducingMessageHandler {
     @SuppressWarnings("unchecked")
     protected Object handleRequestMessage(Message<?> message) {
         List<Map<String, Object>> sites = (List<Map<String, Object>>) message.getPayload();
+        java.sql.Timestamp insertDate = (java.sql.Timestamp) message.getHeaders().get("insert_date");
         
         log.info("Обрабатываем {} сайтов", sites.size());
         
@@ -61,6 +62,7 @@ public class SitesUpsertHandler extends AbstractReplyProducingMessageHandler {
                 ps.setObject(9, site.get("address"));
                 ps.setObject(10, site.get("source"));
                 ps.setObject(11, site.get("type"));
+                ps.setTimestamp(12, insertDate);
             }
 
             @Override

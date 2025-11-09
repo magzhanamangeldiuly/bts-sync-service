@@ -21,18 +21,18 @@ public class CellsUpsertHandler extends AbstractReplyProducingMessageHandler {
     private static final String UPSERT_SQL = """
             MERGE INTO ob_cells_v2 t
             USING (SELECT ? AS cell, ? AS site, ? AS sector, ? AS cellid, ? AS lac, 
-                          ? AS type, ? AS status, ? AS band, ? AS azimut, ? AS height 
+                          ? AS type, ? AS status, ? AS band, ? AS azimut, ? AS height, ? AS insert_date 
                    FROM dual) s
             ON (t.cell = s.cell)
             WHEN MATCHED THEN
                 UPDATE SET t.site = s.site, t.sector = s.sector, t.cellid = s.cellid, 
                            t.lac = s.lac, t.type = s.type, t.status = s.status, 
                            t.band = s.band, t.azimut = s.azimut, t.height = s.height,
-                           t.insert_date = CURRENT_TIMESTAMP
+                           t.insert_date = s.insert_date
             WHEN NOT MATCHED THEN
                 INSERT (cell, site, sector, cellid, lac, type, status, band, azimut, height, insert_date)
                 VALUES (s.cell, s.site, s.sector, s.cellid, s.lac, s.type, s.status, 
-                        s.band, s.azimut, s.height, CURRENT_TIMESTAMP)
+                        s.band, s.azimut, s.height, s.insert_date)
             """;
 
     public CellsUpsertHandler(JdbcTemplate oracleJdbcTemplate) {
@@ -43,6 +43,7 @@ public class CellsUpsertHandler extends AbstractReplyProducingMessageHandler {
     @SuppressWarnings("unchecked")
     protected Object handleRequestMessage(Message<?> message) {
         List<Map<String, Object>> cells = (List<Map<String, Object>>) message.getPayload();
+        java.sql.Timestamp insertDate = (java.sql.Timestamp) message.getHeaders().get("insert_date");
         
         log.info("Обрабатываем {} ячеек", cells.size());
         
@@ -60,6 +61,7 @@ public class CellsUpsertHandler extends AbstractReplyProducingMessageHandler {
                 ps.setObject(8, cell.get("band"));
                 ps.setObject(9, cell.get("azimut"));
                 ps.setObject(10, cell.get("height"));
+                ps.setTimestamp(11, insertDate);
             }
 
             @Override
