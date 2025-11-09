@@ -19,7 +19,7 @@ public class CellsUpsertHandler extends AbstractReplyProducingMessageHandler {
     private final JdbcTemplate oracleJdbcTemplate;
 
     private static final String UPSERT_SQL = """
-            MERGE INTO cells_v2 t
+            MERGE INTO ob_cells_v2 t
             USING (SELECT ? AS cell, ? AS site, ? AS sector, ? AS cellid, ? AS lac, 
                           ? AS type, ? AS status, ? AS band, ? AS azimut, ? AS height 
                    FROM dual) s
@@ -28,11 +28,11 @@ public class CellsUpsertHandler extends AbstractReplyProducingMessageHandler {
                 UPDATE SET t.site = s.site, t.sector = s.sector, t.cellid = s.cellid, 
                            t.lac = s.lac, t.type = s.type, t.status = s.status, 
                            t.band = s.band, t.azimut = s.azimut, t.height = s.height,
-                           t.insert_date = SYSTIMESTAMP
+                           t.insert_date = CURRENT_TIMESTAMP
             WHEN NOT MATCHED THEN
                 INSERT (cell, site, sector, cellid, lac, type, status, band, azimut, height, insert_date)
                 VALUES (s.cell, s.site, s.sector, s.cellid, s.lac, s.type, s.status, 
-                        s.band, s.azimut, s.height, SYSTIMESTAMP)
+                        s.band, s.azimut, s.height, CURRENT_TIMESTAMP)
             """;
 
     public CellsUpsertHandler(JdbcTemplate oracleJdbcTemplate) {

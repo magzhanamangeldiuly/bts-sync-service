@@ -19,7 +19,7 @@ public class SitesUpsertHandler extends AbstractReplyProducingMessageHandler {
     private final JdbcTemplate oracleJdbcTemplate;
 
     private static final String UPSERT_SQL = """
-            MERGE INTO sites_v2 t
+            MERGE INTO ob_sites_v2 t
             USING (SELECT ? AS name, ? AS rnc, ? AS bsc, ? AS latitude, ? AS longitude, 
                           ? AS operator, ? AS kato, ? AS is_test, ? AS address, ? AS source, ? AS type 
                    FROM dual) s
@@ -28,11 +28,11 @@ public class SitesUpsertHandler extends AbstractReplyProducingMessageHandler {
                 UPDATE SET t.rnc = s.rnc, t.bsc = s.bsc, t.latitude = s.latitude, 
                            t.longitude = s.longitude, t.operator = s.operator, t.kato = s.kato,
                            t.is_test = s.is_test, t.address = s.address, t.source = s.source, 
-                           t.type = s.type, t.insert_date = SYSTIMESTAMP
+                           t.type = s.type, t.insert_date = CURRENT_TIMESTAMP
             WHEN NOT MATCHED THEN
                 INSERT (name, rnc, bsc, latitude, longitude, operator, kato, is_test, address, source, type, insert_date)
                 VALUES (s.name, s.rnc, s.bsc, s.latitude, s.longitude, s.operator, s.kato, s.is_test, 
-                        s.address, s.source, s.type, SYSTIMESTAMP)
+                        s.address, s.source, s.type, CURRENT_TIMESTAMP)
             """;
 
     public SitesUpsertHandler(JdbcTemplate oracleJdbcTemplate) {

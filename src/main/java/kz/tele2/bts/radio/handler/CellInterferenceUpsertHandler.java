@@ -19,14 +19,14 @@ public class CellInterferenceUpsertHandler extends AbstractReplyProducingMessage
     private final JdbcTemplate oracleJdbcTemplate;
 
     private static final String UPSERT_SQL = """
-            MERGE INTO interferences_v2 t
+            MERGE INTO ob_interferences_v2 t
             USING (SELECT ? AS cell, ? AS value FROM dual) s
             ON (t.cell = s.cell)
             WHEN MATCHED THEN
-                UPDATE SET t.value = s.value, t.insert_date = SYSTIMESTAMP
+                UPDATE SET t.value = s.value, t.insert_date = CURRENT_TIMESTAMP
             WHEN NOT MATCHED THEN
                 INSERT (cell, value, insert_date)
-                VALUES (s.cell, s.value, SYSTIMESTAMP)
+                VALUES (s.cell, s.value, CURRENT_TIMESTAMP)
             """;
 
     public CellInterferenceUpsertHandler(JdbcTemplate oracleJdbcTemplate) {

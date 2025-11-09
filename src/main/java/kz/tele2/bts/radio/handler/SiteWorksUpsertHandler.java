@@ -19,14 +19,8 @@ public class SiteWorksUpsertHandler extends AbstractReplyProducingMessageHandler
     private final JdbcTemplate oracleJdbcTemplate;
 
     private static final String UPSERT_SQL = """
-            MERGE INTO works_v2 t
-            USING (SELECT ? AS site, ? AS work_type, ? AS status FROM dual) s
-            ON (t.site = s.site AND t.work_type = s.work_type)
-            WHEN MATCHED THEN
-                UPDATE SET t.status = s.status, t.insert_date = SYSTIMESTAMP
-            WHEN NOT MATCHED THEN
-                INSERT (site, work_type, status, insert_date)
-                VALUES (s.site, s.work_type, s.status, SYSTIMESTAMP)
+            INSERT INTO ob_works_v2 (site, work_type, status, insert_date)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
             """;
 
     public SiteWorksUpsertHandler(JdbcTemplate oracleJdbcTemplate) {
