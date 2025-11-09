@@ -86,6 +86,7 @@ public class DatasourceConfiguration {
     public JdbcTemplate postgresJdbcTemplate(){
         return new JdbcTemplate(postgresDataSource());
     }
+
     @Bean
     public NamedParameterJdbcTemplate postgresNamedParameterJdbcTemplate(){
         return new NamedParameterJdbcTemplate(postgresDataSource());
