@@ -1,14 +1,11 @@
 package kz.tele2.bts.radio.transformer;
 
+import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.integration.transformer.AbstractTransformer;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j

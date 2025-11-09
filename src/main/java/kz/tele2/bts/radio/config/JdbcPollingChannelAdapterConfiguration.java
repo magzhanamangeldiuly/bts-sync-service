@@ -13,6 +13,14 @@ import org.springframework.jdbc.core.ColumnMapRowMapper;
 @Configuration
 public class JdbcPollingChannelAdapterConfiguration {
 
+    @Bean("sitesAtollDataAdapter")
+    public JdbcPollingChannelAdapter sitesAtollDataAdapter(
+        @Qualifier("atollDataSource") DataSource atollDataSource) {
+        var adapter = new JdbcPollingChannelAdapter(atollDataSource, Queries.SITES_ATOLL_DATA);
+        adapter.setRowMapper(new ColumnMapRowMapper());
+        return adapter;
+    }
+
     @Bean("sitesRadioDataAdapter")
     public JdbcPollingChannelAdapter sitesRadioDataAdapter(
         @Qualifier("postgresDataSource") DataSource postgresDataSource) {

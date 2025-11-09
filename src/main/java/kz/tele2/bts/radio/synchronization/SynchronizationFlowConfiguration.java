@@ -26,21 +26,40 @@ public class SynchronizationFlowConfiguration {
         @Qualifier("sitesRadioDataAdapter") JdbcPollingChannelAdapter sitesRadioDataAdapter,
         @Qualifier("sitesMocnAdapter") JdbcPollingChannelAdapter sitesMocnAdapter,
         @Qualifier("sites250PlusAdapter") JdbcPollingChannelAdapter sites250PlusAdapter,
+        @Qualifier("sitesAtollDataAdapter") JdbcPollingChannelAdapter sitesAtollDataAdapter,
+        AtollSitesNormalizerTransformer atollSitesNormalizerTransformer,
         SitesMergeTransformer sitesMergeTransformer,
         SitesUpsertHandler sitesUpsertHandler) {
-        return IntegrationFlow.from(sitesRadioDataAdapter, c -> c.poller(Pollers.fixedDelay(3600000L)))
+
+        return IntegrationFlow.from("syncSitesChannel")
             .scatterGather(
                 scatterer -> scatterer
                     .applySequence(true)
                     .recipientFlow(f -> f.handle(sitesRadioDataAdapter))
                     .recipientFlow(f -> f.handle(sitesMocnAdapter))
-                    .recipientFlow(f -> f.handle(sites250PlusAdapter)),
+                    .recipientFlow(f -> f.handle(sites250PlusAdapter))
+                    .recipientFlow(f -> f.handle(sitesAtollDataAdapter).transform(atollSitesNormalizerTransformer)),
                 gather -> gather.outputProcessor(g -> {
-                    List<Map<String, Object>> mainSites = g.streamMessages()
-                        .flatMap(m -> ((Collection<?>) m.getPayload()).stream())
-                        .map(obj -> (Map<String, Object>) obj)
-                        .collect(Collectors.toList());
-                    return MessageBuilder.withPayload(mainSites)
+                    List<Map<String, Object>> allSites = new ArrayList<>();
+                    Map<String, Map<String, Object>> atollSitesMap = null;
+                    
+                    for (var msg : g.getMessages()) {
+                        Object payload = msg.getPayload();
+                        if (payload instanceof Map<?, ?>) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Map<String, Object>> temp = (Map<String, Map<String, Object>>) payload;
+                            atollSitesMap = temp;
+                        } else if (payload instanceof Collection<?>) {
+                            for (Object obj : (Collection<?>) payload) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> site = (Map<String, Object>) obj;
+                                allSites.add(site);
+                            }
+                        }
+                    }
+                    
+                    return MessageBuilder.withPayload(allSites)
+                        .setHeader("atollSitesMap", atollSitesMap)
                         .copyHeaders(g.getOne().getHeaders())
                         .build();
                 })
@@ -54,30 +73,28 @@ public class SynchronizationFlowConfiguration {
     @Bean
     public IntegrationFlow syncTransportSitesFlow(
         @Qualifier("transportSitesAdapter") JdbcPollingChannelAdapter transportSitesAdapter,
-        SitesMergeTransformer sitesMergeTransformer,
         SitesUpsertHandler sitesUpsertHandler) {
 
-        return IntegrationFlow.from(transportSitesAdapter, c -> c.poller(Pollers.fixedDelay(3600000L)))
+        return IntegrationFlow.from("syncTransportSitesChannel")
             .enrichHeaders(h -> h.headerExpression("mainSites", "payload"))
             .handle(transportSitesAdapter)
             .transform(Message.class, this::filterNonMainSites)
-            .transform(sitesMergeTransformer)
             .handle(sitesUpsertHandler, e -> e.requiresReply(true))
+            .transform(this::extractSiteNames)
             .get();
     }
 
     @Bean
     public IntegrationFlow syncRolloutSitesFlow(
         @Qualifier("rolloutSitesAdapter") JdbcPollingChannelAdapter rolloutSitesAdapter,
-        SitesMergeTransformer sitesMergeTransformer,
         SitesUpsertHandler sitesUpsertHandler) {
 
-        return IntegrationFlow.from(rolloutSitesAdapter, c -> c.poller(Pollers.fixedDelay(3600000L)))
+        return IntegrationFlow.from("syncRolloutSitesChannel")
             .enrichHeaders(h -> h.headerExpression("mainSites", "payload"))
             .handle(rolloutSitesAdapter)
             .transform(Message.class, this::filterNonMainSites)
-            .transform(sitesMergeTransformer)
             .handle(sitesUpsertHandler, e -> e.requiresReply(true))
+            .transform(this::extractSiteNames)
             .get();
     }
 
@@ -89,7 +106,7 @@ public class SynchronizationFlowConfiguration {
         CellsEnrichmentTransformer cellsEnrichmentTransformer,
         CellsUpsertHandler cellsUpsertHandler) {
 
-        return IntegrationFlow.from(cellsAdapter, c -> c.poller(Pollers.fixedDelay(3600000L)))
+        return IntegrationFlow.from("syncCellsChannel")
             .enrichHeaders(h -> h.headerExpression("allSyncedSites", "payload"))
             .handle(azimuthHeightAdapter)
             .transform(atollDataNormalizerTransformer)
@@ -107,7 +124,7 @@ public class SynchronizationFlowConfiguration {
         SiteWorksFilterTransformer siteWorksFilterTransformer,
         SiteWorksUpsertHandler siteWorksUpsertHandler) {
 
-        return IntegrationFlow.from(siteWorksAdapter, c -> c.poller(Pollers.fixedDelay(3600000L)))
+        return IntegrationFlow.from("syncSiteWorksChannel")
             .enrichHeaders(h -> h.headerExpression("allSyncedSites", "payload"))
             .handle(siteWorksAdapter)
             .transform(siteWorksFilterTransformer)
@@ -120,7 +137,8 @@ public class SynchronizationFlowConfiguration {
         @Qualifier("cellInterferenceAdapter") JdbcPollingChannelAdapter cellInterferenceAdapter,
         CellInterferenceFilterTransformer cellInterferenceFilterTransformer,
         CellInterferenceUpsertHandler cellInterferenceUpsertHandler) {
-        return IntegrationFlow.from(cellInterferenceAdapter, c -> c.poller(Pollers.fixedDelay(3600000L)))
+
+        return IntegrationFlow.from("syncCellInterferenceChannel")
             .enrichHeaders(h -> h.headerExpression("syncedCells", "payload"))
             .handle(cellInterferenceAdapter)
             .transform(cellInterferenceFilterTransformer)
@@ -128,7 +146,25 @@ public class SynchronizationFlowConfiguration {
             .get();
     }
 
-    @SuppressWarnings("unchecked")
+    @Bean
+    public IntegrationFlow mainSyncFlow() {
+        return IntegrationFlow
+            .from(() -> MessageBuilder.withPayload(new Object()).build(), e -> e.poller(Pollers.fixedDelay(3_600_000L)))
+            .gateway("syncSitesChannel")
+            .enrichHeaders(h -> h.header("mainSyncedSites", "payload"))
+            .gateway("syncTransportSitesChannel")
+            .enrichHeaders(h -> h.header("transportSyncedSites", "payload"))
+            .gateway("syncRolloutSitesChannel")
+            .enrichHeaders(h -> h.header("rolloutSyncedSites", "payload"))
+            .transform(Message.class, this::combineAllSites)
+            .enrichHeaders(h -> h.header("allSyncedSites", "payload"))
+            .gateway("syncCellsChannel")
+            .enrichHeaders(h -> h.header("syncedCells", "payload"))
+            .gateway("syncSiteWorksChannel")
+            .gateway("syncCellInterferenceChannel")
+            .get();
+    }
+
     private Set<String> extractSiteNames(List<Map<String, Object>> sites) {
         if (sites == null || sites.isEmpty()) {
             return Set.of();
@@ -139,7 +175,6 @@ public class SynchronizationFlowConfiguration {
             .collect(Collectors.toSet());
     }
 
-    @SuppressWarnings("unchecked")
     private Set<String> extractCellNames(List<Map<String, Object>> cells) {
         if (cells == null || cells.isEmpty()) {
             return Set.of();
@@ -167,38 +202,23 @@ public class SynchronizationFlowConfiguration {
             .collect(Collectors.toList());
     }
 
-    @Bean
-    public IntegrationFlow mainSyncFlow(
-        IntegrationFlow syncSitesFlow,
-        IntegrationFlow syncTransportSitesFlow,
-        IntegrationFlow syncRolloutSitesFlow,
-        IntegrationFlow syncCellsFlow,
-        IntegrationFlow syncSiteWorksFlow,
-        IntegrationFlow syncCellInterferenceFlow) {
-        return IntegrationFlow.from("syncTrigger", false)
-            .publishSubscribeChannel(pubsub -> pubsub
-                .subscribe(syncSitesFlow)
-                .subscribe(syncTransportSitesFlow)
-                .subscribe(syncRolloutSitesFlow)
-            )
-            .transform(this::combineAllSites)
-            .publishSubscribeChannel(pubsub -> pubsub
-                .subscribe(syncCellsFlow)
-                .subscribe(syncSiteWorksFlow)
-            )
-            .handle(syncCellInterferenceFlow)
-            .get();
-    }
-
     @SuppressWarnings("unchecked")
     private Set<String> combineAllSites(Message<?> message) {
-        Set<String> mainSites = (Set<String>) message.getHeaders().get("syncedSites");
-        Set<String> transportSites = (Set<String>) message.getHeaders().get("syncedSites");
-        Set<String> rolloutSites = (Set<String>) message.getHeaders().get("syncedSites");
+        Set<String> mainSites = (Set<String>) message.getHeaders().get("mainSyncedSites");
+        Set<String> transportSites = (Set<String>) message.getHeaders().get("transportSyncedSites");
+        Set<String> rolloutSites = (Set<String>) message.getHeaders().get("rolloutSyncedSites");
+
         Set<String> allSites = new HashSet<>();
-        if (mainSites != null) allSites.addAll(mainSites);
-        if (transportSites != null) allSites.addAll(transportSites);
-        if (rolloutSites != null) allSites.addAll(rolloutSites);
+        if (mainSites != null) {
+            allSites.addAll(mainSites);
+        }
+        if (transportSites != null) {
+            allSites.addAll(transportSites);
+        }
+        if (rolloutSites != null) {
+            allSites.addAll(rolloutSites);
+        }
+
         return allSites;
     }
 }
