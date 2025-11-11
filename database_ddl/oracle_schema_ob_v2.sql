@@ -175,3 +175,4 @@ LEFT JOIN v_ob_interferences_v2_latest i ON c.cell = i.cell;
 
 COMMIT;
 
+

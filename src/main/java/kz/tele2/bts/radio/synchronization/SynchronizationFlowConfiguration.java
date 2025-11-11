@@ -5,8 +5,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 import kz.tele2.bts.radio.handler.CellInterferenceUpsertHandler;
 import kz.tele2.bts.radio.handler.CellsUpsertHandler;
+import kz.tele2.bts.radio.handler.RolloutSitesUpsertHandler;
 import kz.tele2.bts.radio.handler.SiteWorksUpsertHandler;
 import kz.tele2.bts.radio.handler.SitesUpsertHandler;
+import kz.tele2.bts.radio.handler.TransportSitesUpsertHandler;
 import kz.tele2.bts.radio.transformer.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -94,7 +96,7 @@ public class SynchronizationFlowConfiguration {
     }
 
     @Bean
-    public IntegrationFlow transportSitesAggregationFlow(SitesUpsertHandler sitesUpsertHandler) {
+    public IntegrationFlow transportSitesAggregationFlow(TransportSitesUpsertHandler transportSitesUpsertHandler) {
         return IntegrationFlow.from("transportSitesAggregationChannel")
             .aggregate(a -> a
                 .correlationStrategy(m -> m.getHeaders().get("aggregationKey"))
@@ -105,7 +107,7 @@ public class SynchronizationFlowConfiguration {
             )
             .transform(Message.class, this::aggregateMessages)
             .filter(Message.class, this::filterNonMainSites)
-            .handle(sitesUpsertHandler, e -> e.requiresReply(true))
+            .handle(transportSitesUpsertHandler, e -> e.requiresReply(true))
             .transform(this::extractSiteNames)
             .channel("transportSitesResultChannel")
             .get();
@@ -122,7 +124,7 @@ public class SynchronizationFlowConfiguration {
     }
 
     @Bean
-    public IntegrationFlow rolloutSitesAggregationFlow(SitesUpsertHandler sitesUpsertHandler) {
+    public IntegrationFlow rolloutSitesAggregationFlow(RolloutSitesUpsertHandler rolloutSitesUpsertHandler) {
         return IntegrationFlow.from("rolloutSitesAggregationChannel")
             .aggregate(a -> a
                 .correlationStrategy(m -> m.getHeaders().get("aggregationKey"))
@@ -133,7 +135,7 @@ public class SynchronizationFlowConfiguration {
             )
             .transform(Message.class, this::aggregateMessages)
             .filter(Message.class, this::filterNonMainSites)
-            .handle(sitesUpsertHandler, e -> e.requiresReply(true))
+            .handle(rolloutSitesUpsertHandler, e -> e.requiresReply(true))
             .transform(this::extractSiteNames)
             .channel("rolloutSitesResultChannel")
             .get();
