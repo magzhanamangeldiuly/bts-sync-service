@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 
@@ -105,5 +107,26 @@ public class DatasourceConfiguration {
     @Bean
     public NamedParameterJdbcTemplate ciptrackerNamedParameterJdbcTemplate(){
         return new NamedParameterJdbcTemplate(ciptrackerDataSource());
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "spring.datasource.postgis")
+    public DataSource postgisDataSource() {
+        return DataSourceBuilder.create().build();
+    }
+
+    @Bean
+    public JdbcTemplate postgisJdbcTemplate(){
+        return new JdbcTemplate(postgisDataSource());
+    }
+
+    @Bean
+    public NamedParameterJdbcTemplate postgisNamedParameterJdbcTemplate(){
+        return new NamedParameterJdbcTemplate(postgisDataSource());
+    }
+
+    @Bean
+    public PlatformTransactionManager postgisTransactionManager(){
+        return new DataSourceTransactionManager(postgisDataSource());
     }
 }

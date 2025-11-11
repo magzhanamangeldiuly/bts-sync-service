@@ -38,10 +38,16 @@ spring:
       password: ${CIPTRACKER_DB_PASSWORD}
       driver-class-name: com.mysql.cj.jdbc.Driver
       pool-name: CiptrackerPool
+    postgis:
+      jdbc-url: jdbc:postgresql://${POSTGIS_DB_URL}
+      username: ${POSTGIS_DB_USERNAME}
+      password: ${POSTGIS_DB_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+      pool-name: PostgisPool
 
 sync:
   sites:
-    fixed-delay: 3600000
+    cron: "0 0 7 * * *"
     max-rows-per-poll: 1000
     enabled: true
   cells:
