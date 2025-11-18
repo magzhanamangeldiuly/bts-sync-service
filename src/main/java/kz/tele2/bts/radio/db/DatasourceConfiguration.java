@@ -15,24 +15,6 @@ import javax.sql.DataSource;
 @Configuration
 public class DatasourceConfiguration {
 
-    @Primary
-    @Bean
-    @ConfigurationProperties(prefix = "spring.datasource.oracle")
-    public DataSource oracleDataSource() {
-        return DataSourceBuilder.create().build();
-    }
-
-    @Primary
-    @Bean
-    public JdbcTemplate oracleJdbcTemplate(){
-        return new JdbcTemplate(oracleDataSource());
-    }
-    @Primary
-    @Bean
-    public NamedParameterJdbcTemplate oracleNamedParameterJdbcTemplate(){
-        return new NamedParameterJdbcTemplate(oracleDataSource());
-    }
-
     @Bean
     @ConfigurationProperties(prefix = "spring.datasource.atoll")
     public DataSource atollDataSource() {

@@ -8,12 +8,12 @@ spring:
       password: ${RANSHARING_DB_PASSWORD}
       driver-class-name: org.postgresql.Driver
       pool-name: PostgresPool
-    oracle:
-      jdbc-url: jdbc:oracle:thin:@//${ALARMS_DB_URL}
-      username: ${ALARMS_DB_USERNAME}
-      password: ${ALARMS_DB_PASSWORD}
-      driver-class-name: oracle.jdbc.OracleDriver
-      pool-name: OraclePool
+    postgis:
+      jdbc-url: jdbc:postgresql://10.145.130.141:5431/bts_online_db
+      username: bts_online
+      password: newPassword2025
+      driver-class-name: org.postgresql.Driver
+      pool-name: PostgisPool
     maria:
       jdbc-url: jdbc:mariadb://${MARIA_DB_URL}
       username: ${MARIA_DB_USERNAME}
@@ -38,12 +38,6 @@ spring:
       password: ${CIPTRACKER_DB_PASSWORD}
       driver-class-name: com.mysql.cj.jdbc.Driver
       pool-name: CiptrackerPool
-    postgis:
-      jdbc-url: jdbc:postgresql://${POSTGIS_DB_URL}
-      username: ${POSTGIS_DB_USERNAME}
-      password: ${POSTGIS_DB_PASSWORD}
-      driver-class-name: org.postgresql.Driver
-      pool-name: PostgisPool
 
 sync:
   sites:
